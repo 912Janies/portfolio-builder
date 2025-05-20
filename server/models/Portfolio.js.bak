@@ -1,0 +1,10 @@
+const mongoose = require('mongoose');
+
+const portfolioSchema = new mongoose.Schema({
+  userId: String,
+  title: String,
+  sections: [{ type: mongoose.Schema.Types.Mixed }],
+  createdAt: { type: Date, default: Date.now },
+});
+
+module.exports = mongoose.model('Portfolio', portfolioSchema);

@@ -1,0 +1,15 @@
+import React from 'react';
+
+const Preview = ({ sections }) => (
+  <div className="mt-6 p-6 bg-white rounded shadow">
+    <h2 className="text-2xl font-bold mb-4">Live Preview</h2>
+    {sections.map((section) => (
+      <div key={section.id} className="mb-4">
+        <h3 className="text-lg font-semibold">{section.content}</h3>
+        <p>Content for {section.content} goes here.</p>
+      </div>
+    ))}
+  </div>
+);
+
+export default Preview;

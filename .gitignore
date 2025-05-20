@@ -1,0 +1,9 @@
+# Ignore node_modules in subdirectories (already covered, but for clarity)
+node_modules/
+package-lock.json
+
+# Ignore any local environment files
+.env
+
+# Ignore macOS files
+.DS_Store

@@ -1,0 +1,54 @@
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
+
+const Preview = ({ sections }) => (
+  <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
+    <h2 className="text-2xl font-semibold text-gray-900 mb-6">Live Preview</h2>
+    {sections.map((section) => (
+      <div
+        key={section.id}
+        className="mb-6 p-4 bg-gray-50 rounded-md border border-gray-200"
+      >
+        <h3 className="text-lg font-semibold text-gray-800">{section.title}</h3>
+        <div className="mt-2 prose prose-sm text-gray-600">
+          <ReactMarkdown>{section.content}</ReactMarkdown>
+        </div>
+        {section.githubUrl && (
+          <p className="mt-2">
+            <a
+              href={section.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-600 font-medium"
+            >
+              View on GitHub
+            </a>
+          </p>
+        )}
+        {section.mediaUrl && (
+          <div className="mt-4">
+            {section.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+              <video
+                controls
+                className="w-full rounded-lg shadow-sm"
+                style={{ maxHeight: '300px' }}
+              >
+                <source src={section.mediaUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <img
+                src={section.mediaUrl}
+                alt={section.title}
+                className="w-full rounded-lg shadow-sm"
+                style={{ maxHeight: '300px', objectFit: 'cover' }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+);
+
+export default Preview;

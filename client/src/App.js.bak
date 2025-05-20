@@ -1,0 +1,82 @@
+import React, { useState } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import axios from 'axios';
+import Preview from './components/Preview';
+
+// Set axios base URL to backend
+axios.defaults.baseURL = 'http://localhost:5001';
+
+const App = () => {
+  const [sections, setSections] = useState([
+    { id: '1', content: 'About Me' },
+    { id: '2', content: 'Projects' },
+  ]);
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const reorderedSections = [...sections];
+    const [moved] = reorderedSections.splice(result.source.index, 1);
+    reorderedSections.splice(result.destination.index, 0, moved);
+    setSections(reorderedSections);
+  };
+
+  const savePortfolio = async () => {
+    try {
+      await axios.post('/api/portfolios', {
+        userId: 'test-user',
+        title: 'My Portfolio',
+        sections,
+      });
+      alert('Portfolio saved!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save portfolio');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <h1 className="text-3xl font-bold mb-6">Portfolio Builder</h1>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="sections">
+          {(provided) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="space-y-4"
+            >
+              {sections.map((section, index) => (
+                <Draggable
+                  key={section.id}
+                  draggableId={section.id}
+                  index={index}
+                >
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className="p-4 bg-white rounded shadow"
+                    >
+                      {section.content}
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+      <Preview sections={sections} />
+      <button
+        onClick={savePortfolio}
+        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+      >
+        Save Portfolio
+      </button>
+    </div>
+  );
+};
+
+export default App;
