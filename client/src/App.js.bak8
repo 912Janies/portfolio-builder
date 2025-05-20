@@ -1,0 +1,337 @@
+import React, { useState, useEffect } from 'react';
+     import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+     import axios from 'axios';
+     import { v4 as uuidv4 } from 'uuid';
+     import Preview from './components/Preview';
+
+     axios.defaults.baseURL = 'http://localhost:5001';
+
+     const App = () => {
+       const [sections, setSections] = useState([
+         { id: uuidv4(), title: 'About Me', content: 'Write about yourself here.', githubUrl: '', mediaUrl: '' },
+         { id: uuidv4(), title: 'Projects', content: 'Describe your projects.', githubUrl: 'https://github.com', mediaUrl: '' },
+       ]);
+       const [newSectionTitle, setNewSectionTitle] = useState('');
+       const [editingSection, setEditingSection] = useState(null);
+       const [isSaving, setIsSaving] = useState(false);
+       const [savedPortfolios, setSavedPortfolios] = useState([]);
+       const [selectedPortfolio, setSelectedPortfolio] = useState(null);
+
+       // Fetch saved portfolios on mount
+       useEffect(() => {
+         const fetchPortfolios = async () => {
+           try {
+             const response = await axios.get('/api/portfolios');
+             setSavedPortfolios(response.data);
+           } catch (err) {
+             console.error('Fetch portfolios error:', err.response || err.message);
+             alert('Failed to fetch portfolios');
+           }
+         };
+         fetchPortfolios();
+       }, []);
+
+       const onDragEnd = (result) => {
+         if (!result.destination) return;
+         const reorderedSections = [...sections];
+         const [moved] = reorderedSections.splice(result.source.index, 1);
+         reorderedSections.splice(result.destination.index, 0, moved);
+         setSections(reorderedSections);
+       };
+
+       const addSection = (e) => {
+         e.preventDefault();
+         if (!newSectionTitle.trim()) return;
+         setSections([
+           ...sections,
+           { id: uuidv4(), title: newSectionTitle, content: '', githubUrl: '', mediaUrl: '' },
+         ]);
+         setNewSectionTitle('');
+       };
+
+       const deleteSection = (id) => {
+         setSections(sections.filter((section) => section.id !== id));
+       };
+
+       const startEditing = (section) => {
+         setEditingSection({ ...section });
+       };
+
+       const saveEdit = (e) => {
+         e.preventDefault();
+         setSections(
+           sections.map((section) =>
+             section.id === editingSection.id ? editingSection : section
+           )
+         );
+         setEditingSection(null);
+       };
+
+       const savePortfolio = async () => {
+         setIsSaving(true);
+         try {
+           const portfolioData = {
+             userId: 'test-user',
+             title: selectedPortfolio?.title || 'My Portfolio',
+             sections,
+           };
+           const response = selectedPortfolio
+             ? await axios.put(`/api/portfolios/${selectedPortfolio._id}`, portfolioData)
+             : await axios.post('/api/portfolios', portfolioData);
+           const savedPortfolio = response.data;
+           setSavedPortfolios((prev) =>
+             selectedPortfolio
+               ? prev.map((p) => (p._id === savedPortfolio._id ? savedPortfolio : p))
+               : [...prev, savedPortfolio]
+           );
+           setSelectedPortfolio(savedPortfolio);
+           alert('Portfolio saved!');
+         } catch (err) {
+           console.error('Save error:', err.response || err.message);
+           alert('Failed to save portfolio');
+         } finally {
+           setIsSaving(false);
+         }
+       };
+
+       const loadPortfolio = (portfolio) => {
+         setSections(portfolio.sections);
+         setSelectedPortfolio(portfolio);
+       };
+
+       const deletePortfolio = async (portfolioId) => {
+         try {
+           await axios.delete(`/api/portfolios/${portfolioId}`);
+           setSavedPortfolios((prev) => prev.filter((p) => p._id !== portfolioId));
+           if (selectedPortfolio?._id === portfolioId) {
+             setSelectedPortfolio(null);
+             setSections([
+               { id: uuidv4(), title: 'About Me', content: 'Write about yourself here.', githubUrl: '', mediaUrl: '' },
+               { id: uuidv4(), title: 'Projects', content: 'Describe your projects.', githubUrl: 'https://github.com', mediaUrl: '' },
+             ]);
+           }
+           alert('Portfolio deleted!');
+         } catch (err) {
+           console.error('Delete error:', err.response || err.message);
+           alert('Failed to delete portfolio');
+         }
+       };
+
+       return (
+         <div className="min-h-screen font-sans flex flex-col items-center bg-gradient-to-b from-indigo-50 to-white">
+           {/* Hero Section */}
+           <header className="w-full bg-indigo-600 text-white shadow-lg">
+             <div className="w-full max-w-[90rem] mx-auto py-12 px-6 sm:px-8 lg:px-12 text-center">
+               <h1 className="text-5xl font-extrabold mb-4 tracking-tight">Build Your Portfolio</h1>
+               <p className="text-xl opacity-90 max-w-2xl mx-auto">
+                 Showcase your skills, projects, and achievements with a stunning portfolio.
+               </p>
+             </div>
+           </header>
+
+           {/* Saved Portfolios Section */}
+           <section className="w-full max-w-[90rem] mx-auto py-8 px-6 sm:px-8 lg:px-12">
+             <h2 className="text-2xl font-bold text-gray-800 mb-6">Saved Portfolios</h2>
+             {savedPortfolios.length === 0 ? (
+               <p className="text-gray-500">No portfolios saved yet.</p>
+             ) : (
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {savedPortfolios.map((portfolio) => (
+                   <div
+                     key={portfolio._id}
+                     className="p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+                   >
+                     <h3 className="text-lg font-semibold text-gray-800 mb-2">{portfolio.title}</h3>
+                     <p className="text-sm text-gray-600 mb-4">
+                       {portfolio.sections.length} section{portfolio.sections.length !== 1 ? 's' : ''}
+                     </p>
+                     <div className="flex gap-3">
+                       <button
+                         onClick={() => loadPortfolio(portfolio)}
+                         className="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600 transition-colors"
+                       >
+                         Load
+                       </button>
+                       <button
+                         onClick={() => deletePortfolio(portfolio._id)}
+                         className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                       >
+                         Delete
+                       </button>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             )}
+           </section>
+
+           {/* Main Content: Two-Column Layout */}
+           <main className="w-full max-w-[90rem] mx-auto py-12 px-6 sm:px-8 lg:px-12">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+               {/* Left Column: Builder */}
+               <div className="space-y-6">
+                 <h2 className="text-3xl font-bold text-gray-800">Portfolio Builder</h2>
+                 <form onSubmit={addSection} className="flex flex-col sm:flex-row gap-4">
+                   <input
+                     type="text"
+                     value={newSectionTitle}
+                     onChange={(e) => setNewSectionTitle(e.target.value)}
+                     placeholder="Enter section title (e.g., Education)"
+                     className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                   />
+                   <button
+                     type="submit"
+                     className="px-6 py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600 transition-colors shadow-sm"
+                   >
+                     Add Section
+                   </button>
+                 </form>
+                 <DragDropContext onDragEnd={onDragEnd}>
+                   <Droppable droppableId="sections">
+                     {(provided) => (
+                       <div
+                         {...provided.droppableProps}
+                         ref={provided.innerRef}
+                         className="space-y-4"
+                       >
+                         {sections.map((section, index) => (
+                           <Draggable
+                             key={section.id}
+                             draggableId={section.id}
+                             index={index}
+                           >
+                             {(provided) => (
+                               <div
+                                 ref={provided.innerRef}
+                                 {...provided.draggableProps}
+                                 {...provided.dragHandleProps}
+                                 className="flex items-center justify-between p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+                               >
+                                 <span className="text-gray-800 font-medium">{section.title}</span>
+                                 <div className="flex gap-2">
+                                   <button
+                                     onClick={() => startEditing(section)}
+                                     className="text-indigo-500 hover:text-indigo-600 font-medium"
+                                   >
+                                     Edit
+                                   </button>
+                                   <button
+                                     onClick={() => deleteSection(section.id)}
+                                     className="text-red-500 hover:text-red-600 font-medium"
+                                   >
+                                     Delete
+                                   </button>
+                                 </div>
+                               </div>
+                             )}
+                           </Draggable>
+                         ))}
+                         {provided.placeholder}
+                       </div>
+                     )}
+                   </Droppable>
+                 </DragDropContext>
+                 <button
+                   onClick={savePortfolio}
+                   disabled={isSaving}
+                   className="w-full sm:w-auto px-6 py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                 >
+                   {isSaving && (
+                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                     </svg>
+                   )}
+                   {isSaving ? 'Saving...' : 'Save Portfolio'}
+                 </button>
+               </div>
+
+               {/* Right Column: Live Preview */}
+               <div className="space-y-6">
+                 <h2 className="text-3xl font-bold text-gray-800">Live Preview</h2>
+                 <Preview sections={sections} />
+               </div>
+             </div>
+           </main>
+
+           {/* Footer */}
+           <footer className="w-full bg-indigo-600 text-white py-8">
+             <div className="w-full max-w-[90rem] mx-auto px-6 sm:px-8 lg:px-12 text-center">
+               <p className="text-lg font-medium mb-2">Contact Me</p>
+               <p className="text-sm opacity-90">
+                 Email: <a href="mailto:james@example.com" className="underline hover:opacity-80">james@example.com</a> | 
+                 LinkedIn: <a href="https://linkedin.com/in/james" target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80">linkedin.com/in/james</a>
+               </p>
+             </div>
+           </footer>
+
+           {/* Edit Modal */}
+           {editingSection && (
+             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+               <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-2xl">
+                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Edit Section</h2>
+                 <form onSubmit={saveEdit} className="space-y-4">
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">Title</label>
+                     <input
+                       type="text"
+                       value={editingSection.title}
+                       onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                       required
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">Content (Markdown)</label>
+                     <textarea
+                       value={editingSection.content}
+                       onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                       rows="5"
+                       placeholder="Enter content (e.g., *Bold text* or [Link](url))"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">GitHub URL</label>
+                     <input
+                       type="url"
+                       value={editingSection.githubUrl}
+                       onChange={(e) => setEditingSection({ ...editingSection, githubUrl: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                       placeholder="https://github.com/username/repo"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">Media URL (Image/Video)</label>
+                     <input
+                       type="url"
+                       value={editingSection.mediaUrl}
+                       onChange={(e) => setEditingSection({ ...editingSection, mediaUrl: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                       placeholder="https://example.com/image.jpg or video.mp4"
+                     />
+                   </div>
+                   <div className="flex gap-4">
+                     <button
+                       type="submit"
+                       className="flex-1 px-6 py-3 bg-indigo-500 text-white rounded-lg font-medium hover:bg-indigo-600 transition-colors shadow-sm"
+                     >
+                       Save
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => setEditingSection(null)}
+                       className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors shadow-sm"
+                     >
+                       Cancel
+                     </button>
+                   </div>
+                 </form>
+               </div>
+             </div>
+           )}
+         </div>
+       );
+     };
+
+     export default App;

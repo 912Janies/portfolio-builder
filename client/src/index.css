@@ -1,44 +1,52 @@
-/* Optional: Add to your index.css or App.css for simple modal animations */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .animate-fadeIn {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-  .animate-scaleUp {
-    animation: scaleUp 0.3s ease-in-out;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes scaleUp {
-    from { transform: scale(0.95); opacity: 0.8; }
-    to { transform: scale(1); opacity: 1; }
-  }
+body {
+  font-family: 'Poppins', sans-serif;
 }
 
-/* Make scrollbars a bit more subtle (WebKit browsers) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f1f130; /* Slightly transparent track */
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb {
-  background: #88888880; /* Slightly transparent thumb */
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #555555b0; /* Darker on hover */
+.star-bg {
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 90px 40px, #ddd, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
 }
 
-/* For Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #88888880 #f1f1f130;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-in-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.5s ease-in-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-in-out;
 }

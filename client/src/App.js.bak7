@@ -1,0 +1,231 @@
+import React, { useState } from 'react';
+     import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+     import axios from 'axios';
+     import { v4 as uuidv4 } from 'uuid';
+     import Preview from './components/Preview';
+
+     // Set axios base URL to backend
+     axios.defaults.baseURL = 'http://localhost:5001';
+
+     const App = () => {
+       const [sections, setSections] = useState([
+         { id: uuidv4(), title: 'About Me', content: 'Write about yourself here.', githubUrl: '', mediaUrl: '' },
+         { id: uuidv4(), title: 'Projects', content: 'Describe your projects.', githubUrl: 'https://github.com', mediaUrl: '' },
+       ]);
+       const [newSectionTitle, setNewSectionTitle] = useState('');
+       const [editingSection, setEditingSection] = useState(null);
+
+       const onDragEnd = (result) => {
+         if (!result.destination) return;
+         const reorderedSections = [...sections];
+         const [moved] = reorderedSections.splice(result.source.index, 1);
+         reorderedSections.splice(result.destination.index, 0, moved);
+         setSections(reorderedSections);
+       };
+
+       const addSection = (e) => {
+         e.preventDefault();
+         if (!newSectionTitle.trim()) return;
+         setSections([
+           ...sections,
+           { id: uuidv4(), title: newSectionTitle, content: '', githubUrl: '', mediaUrl: '' },
+         ]);
+         setNewSectionTitle('');
+       };
+
+       const deleteSection = (id) => {
+         setSections(sections.filter((section) => section.id !== id));
+       };
+
+       const startEditing = (section) => {
+         setEditingSection({ ...section });
+       };
+
+       const saveEdit = (e) => {
+         e.preventDefault();
+         setSections(
+           sections.map((section) =>
+             section.id === editingSection.id ? editingSection : section
+           )
+         );
+         setEditingSection(null);
+       };
+
+       const savePortfolio = async () => {
+         try {
+           await axios.post('/api/portfolios', {
+             userId: 'test-user',
+             title: 'My Portfolio',
+             sections,
+           });
+           alert('Portfolio saved!');
+         } catch (err) {
+           console.error('Save error:', err.response || err.message);
+           alert('Failed to save portfolio');
+         }
+       };
+
+       return (
+         <div className="min-h-screen bg-gray-50 font-sans flex flex-col items-center">
+           {/* Hero Section */}
+           <header className="w-full bg-white shadow-sm">
+             <div className="w-full max-w-[90rem] mx-auto py-12 px-6 sm:px-8 lg:px-12 text-center">
+               <h1 className="text-5xl font-bold text-gray-900 mb-4">Build Your Portfolio</h1>
+               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                 Create a stunning portfolio to showcase your skills, projects, and achievements as a software engineer.
+               </p>
+             </div>
+           </header>
+
+           {/* Main Content: Two-Column Layout */}
+           <main className="w-full max-w-[90rem] mx-auto py-12 px-6 sm:px-8 lg:px-12">
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+               {/* Left Column: Builder */}
+               <div className="space-y-6">
+                 <h2 className="text-3xl font-semibold text-gray-900">Portfolio Builder</h2>
+                 <form onSubmit={addSection} className="flex flex-col sm:flex-row gap-4">
+                   <input
+                     type="text"
+                     value={newSectionTitle}
+                     onChange={(e) => setNewSectionTitle(e.target.value)}
+                     placeholder="Enter section title (e.g., Education)"
+                     className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   />
+                   <button
+                     type="submit"
+                     className="px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                   >
+                     Add Section
+                   </button>
+                 </form>
+                 <DragDropContext onDragEnd={onDragEnd}>
+                   <Droppable droppableId="sections">
+                     {(provided) => (
+                       <div
+                         {...provided.droppableProps}
+                         ref={provided.innerRef}
+                         className="space-y-4"
+                       >
+                         {sections.map((section, index) => (
+                           <Draggable
+                             key={section.id}
+                             draggableId={section.id}
+                             index={index}
+                           >
+                             {(provided) => (
+                               <div
+                                 ref={provided.innerRef}
+                                 {...provided.draggableProps}
+                                 {...provided.dragHandleProps}
+                                 className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+                               >
+                                 <span className="text-gray-800 font-medium">{section.title}</span>
+                                 <div className="flex gap-2">
+                                   <button
+                                     onClick={() => startEditing(section)}
+                                     className="text-blue-500 hover:text-blue-600"
+                                   >
+                                     Edit
+                                   </button>
+                                   <button
+                                     onClick={() => deleteSection(section.id)}
+                                     className="text-red-500 hover:text-red-600"
+                                   >
+                                     Delete
+                                   </button>
+                                 </div>
+                               </div>
+                             )}
+                           </Draggable>
+                         ))}
+                         {provided.placeholder}
+                       </div>
+                     )}
+                   </Droppable>
+                 </DragDropContext>
+                 <button
+                   onClick={savePortfolio}
+                   className="w-full sm:w-auto px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                 >
+                   Save Portfolio
+                 </button>
+               </div>
+
+               {/* Right Column: Live Preview */}
+               <div className="space-y-6">
+                 <h2 className="text-3xl font-semibold text-gray-900">Live Preview</h2>
+                 <Preview sections={sections} />
+               </div>
+             </div>
+           </main>
+
+           {/* Edit Modal */}
+           {editingSection && (
+             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+               <div className="bg-white rounded-lg p-6 max-w-lg w-full">
+                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">Edit Section</h2>
+                 <form onSubmit={saveEdit} className="space-y-4">
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">Title</label>
+                     <input
+                       type="text"
+                       value={editingSection.title}
+                       onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       required
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">Content (Markdown)</label>
+                     <textarea
+                       value={editingSection.content}
+                       onChange={(e) => setEditingSection({ ...editingSection, content: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       rows="5"
+                       placeholder="Enter content (e.g., *Bold text* or [Link](url))"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">GitHub URL</label>
+                     <input
+                       type="url"
+                       value={editingSection.githubUrl}
+                       onChange={(e) => setEditingSection({ ...editingSection, githubUrl: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="https://github.com/username/repo"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-gray-700 font-medium mb-1">Media URL (Image/Video)</label>
+                     <input
+                       type="url"
+                       value={editingSection.mediaUrl}
+                       onChange={(e) => setEditingSection({ ...editingSection, mediaUrl: e.target.value })}
+                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="https://example.com/image.jpg or video.mp4"
+                     />
+                   </div>
+                   <div className="flex gap-4">
+                     <button
+                       type="submit"
+                       className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                     >
+                       Save
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => setEditingSection(null)}
+                       className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                     >
+                       Cancel
+                     </button>
+                   </div>
+                 </form>
+               </div>
+             </div>
+           )}
+         </div>
+       );
+     };
+
+     export default App;
