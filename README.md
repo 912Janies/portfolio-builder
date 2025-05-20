@@ -14,4 +14,4 @@ A web application to create and manage a professional portfolio, built with Reac
 - **Backend**: Express, MongoDB, Mongoose
 - **Tools**: Axios for API calls, UUID for unique section IDs
 
-## Project Structure
+
